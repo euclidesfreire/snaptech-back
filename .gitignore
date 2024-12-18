@@ -1,0 +1,7 @@
+# Configurações de IDEs e editores
+.vscode/
+.idea/
+*.swp
+
+.venv/
+__pycache__/
