@@ -6,7 +6,7 @@ class ArticleBase(SQLModel):
     title: str
     description: Optional[str]
     content: Optional[str]
-    url: str
+    link: str
 
 class ArticleCreate(ArticleBase):
     pass  # Herda tudo de ArticleBase, usado para criar artigos
