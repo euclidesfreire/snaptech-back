@@ -20,3 +20,4 @@ class UserInteraction(SQLModel, table=True):
     user_id: int
     article_id: int
     liked: bool  # True para "gostou", False para "não gostou"
+
