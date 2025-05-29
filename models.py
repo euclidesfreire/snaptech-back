@@ -7,7 +7,17 @@ class Article(SQLModel, table=True):
     title: str
     description: Optional[str]
     content: Optional[str]
+    keywords: Optional[str]
+    category: Optional[str]
+    pubDate: Optional[str]
+    duplicate: Optional[bool]
+    source_id: Optional[str]
+    source_name: Optional[str]
+    source_priority: Optional[int]
+    country: Optional[str]
+    creator: Optional[str]
     link: Optional[str]
+    language: Optional[str]
     image_url: Optional[str]
     liked_by_users: int = 0  
     disliked_by_users: int = 0  
