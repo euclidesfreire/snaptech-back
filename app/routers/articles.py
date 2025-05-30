@@ -68,7 +68,7 @@ def like_article(article_id: int, user_id: int, liked: bool, session: Session = 
     session.add(interaction)
 
     if liked:
-        article.liked_by_users += 1
+        article.like_by_users += 1
     session.commit()
     return {"message": "Interação registrada"}
 

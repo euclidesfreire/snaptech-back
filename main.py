@@ -1,14 +1,24 @@
 import requests
+import random
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import Session, select
 from database import create_db_and_tables, get_session
+from pydantic import BaseModel
 from models import Article, UserInteraction, User
-from ml.recommender import collaborative_filtering
+from ml.recommender import cold_start, collaborative_filtering
+import time
 
 app = FastAPI()
 
 NEWS_API_KEY = "pub_624603223c8e181a61bcd17adc1b2a82cdaa8"
 NEWS_API_URL = "https://newsdata.io/api/1/latest"
+
+class UserInteractionStart(BaseModel):
+    id: int
+    user_id: int
+    article_id: int
+    like: bool
+    dislike: bool
 
 @app.on_event("startup")
 def on_startup():
@@ -38,7 +48,10 @@ def search_news(session: Session = Depends(get_session)):
     return articles
 
 @app.post("/users/")
-def post_user(email: str, session: Session = Depends(get_session)):
+def create_user(email: str, session: Session = Depends(get_session)):
+    post_user(email, session)
+
+def post_user(email, session: Session):
     new_user = User(
         email=email
     )
@@ -52,6 +65,12 @@ def get_user(id: int, session: Session = Depends(get_session)):
     statement = select(User).where(User.id == id)
     result = session.exec(statement).first()  # Retorna o primeiro resultado
     return result
+
+@app.get("/users/")
+def get_user_all(session: Session = Depends(get_session)):
+    statement = select(User)
+    results = session.exec(statement)
+    return results.all()
 
 @app.get("/login/")
 def login(email: str, session: Session = Depends(get_session)):
@@ -76,17 +95,48 @@ def get_article(id: int, session: Session = Depends(get_session)):
     return article
 
 @app.post("/articles/{article_id}/like/")
-def like_article(article_id: int, user_id: int, liked: bool, session: Session = Depends(get_session)):
+def create_like_article(article_id: int, user_id: int, like: bool, session: Session = Depends(get_session)):
+    return like_article(article_id, user_id, like, session)
+
+
+def like_article(article_id: int, user_id: int, like: bool, session: Session):
     article = session.get(Article, article_id)
+
     if not article:
         raise HTTPException(status_code=404, detail="Artigo não encontrado")
     
-    interaction = UserInteraction(user_id=user_id, article_id=article_id, liked=liked)
+    interaction = UserInteraction(user_id=user_id, article_id=article_id, like=like, dislike=False)
     session.add(interaction)
 
-    if liked:
-        article.liked_by_users += 1
+    if like:
+        article.like_by_users += 1
+    else:
+        article.like_by_users -= 1
+
     session.commit()
+
+    return {"message": "Interação registrada"}
+
+@app.post("/articles/{article_id}/dislike/")
+def create_dislike_article(article_id: int, user_id: int, dislike: bool, session: Session = Depends(get_session)):
+    return dislike_article(article_id, user_id, dislike, session)
+
+def dislike_article(article_id: int, user_id: int, dislike: bool, session: Session):
+    article = session.get(Article, article_id)
+    
+    if not article:
+        raise HTTPException(status_code=404, detail="Artigo não encontrado")
+    
+    interaction = UserInteraction(user_id=user_id, article_id=article_id, dislike=dislike, like=False)
+    session.add(interaction)
+
+    if dislike:
+        article.dislike_by_users += 1
+    else:
+        article.dislike_by_users -= 1
+
+    session.commit()
+
     return {"message": "Interação registrada"}
 
 @app.get("/interactions/users/{user_id}")
@@ -105,11 +155,67 @@ def get_articles_interactions(article_id: int, session: Session = Depends(get_se
     
     return interactions
 
-@app.get("/recommendations/")
-def get_recommendations(user_id: int, session: Session = Depends(get_session)):
+@app.get("/recommendations/cold_start")
+def get_cold_start(user_id: int, session: Session = Depends(get_session)):
     interactions = session.query(UserInteraction).all()
-    articles = {article.id: article for article in session.query(Article).all()}
-    recommendations = collaborative_filtering(interactions, articles, user_id)
+    #articles = {article.id: article for article in session.query(Article).all()}
+    recommendations = cold_start(interactions, user_id)
     print('recommendations')
     print(recommendations)
     return recommendations
+
+@app.get("/recommendations/")
+def get_recommendations(user_id: int, session: Session = Depends(get_session)):
+    interactions = session.query(UserInteraction).all()
+    #articles = {article.id: article for article in session.query(Article).all()}
+    recommendations = collaborative_filtering(interactions, user_id)
+    print('recommendations')
+    print(recommendations)
+    return recommendations
+
+@app.get("/start/")
+def get_start(session: Session = Depends(get_session)):
+
+    #for i in range(0,150): 
+    #    email=f"usuario{i}@dominio.com"
+    #    post_user(email, session)
+
+    
+    interactions = {}
+
+    users = get_user_all(session)
+    articles = get_articles(session)
+
+    for i in range(1,550):
+
+        user_id_random = 0
+        article_id_random = 0
+
+        while True:
+
+            user_id_random = random.choice([j.id for j in users])
+            article_id_random = random.choice([k.id for k in articles])
+
+            if (user_id_random, article_id_random) not in interactions:
+                break
+
+        liked=(like := random.choice([True, False]))
+        disliked=not liked
+
+        user_interaction = UserInteractionStart (
+            id=i,
+            user_id=user_id_random,
+            article_id=article_id_random,
+            like=liked,
+            dislike=disliked
+        )
+    
+
+        if like:
+            like_article(article_id_random, user_id_random, liked, session)
+        else:
+            dislike_article(article_id_random, user_id_random, disliked, session)
+        
+        interactions[(user_id_random, article_id_random)] = user_interaction
+
+    

@@ -5,3 +5,4 @@ sqlmodel==0.0.22
 scikit-learn==1.6.0
 scipy==1.14.1
 pandas==2.2.3
+pydantic

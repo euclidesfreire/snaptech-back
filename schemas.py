@@ -13,7 +13,7 @@ class ArticleCreate(ArticleBase):
 
 class ArticleResponse(ArticleBase):
     id: int
-    liked_by_users: int  # Inclui apenas campos relevantes para resposta
+    like_by_users: int  # Inclui apenas campos relevantes para resposta
 
     class Config:
         orm_mode = True  # Permite usar objetos ORM diretamente
