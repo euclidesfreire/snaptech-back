@@ -1,34 +1,60 @@
 from newsdataapi import NewsDataApiClient
+from pydantic import BaseModel
+from typing import Optional
+from sqlmodel import Session
+from models import Article
+import requests
+import time
 
-class Article:
+#class Article(BaseModel):
+#    article_id: Optional[str]
+#    title: str
+#    description: Optional[str]
+#    link: Optional[str]
+#    image_url: Optional[str]
 
-    def __init__(self, title, modelo, ano):
-        self.article_id = article_id
-        self.title = title
-        self.link = link
-        self.description = description
-        self.image_url = image_url
-        self.pubDate = pubDate
-        self.sentiment = sentiment
-        self.sentiment_stats = sentiment_stats
+NEWS_API_KEY = "pub_624603223c8e181a61bcd17adc1b2a82cdaa8"
+NEWS_API_URL = "https://newsdata.io/api/1/latest"
 
-def get_articles(q = "", country = "br", category = "technology"):
-
-    # API key authorization, Initialize the client with your API key
-    api = NewsDataApiClient(apikey="pub_624603223c8e181a61bcd17adc1b2a82cdaa8")
+def get_articles_api(q = "", country = "br", category = "technology", session=Session):
 
     # You can paginate till last page by providing "page" parameter
     page=None
+    
+    articles = []
 
     while True:
 
-        response = api.news_api(q = q, page = page, country = country)
+        response = requests.get(NEWS_API_URL, params={"category": "technology", "country": "br", "page": page, "apiKey": NEWS_API_KEY})
+        data = response.json()
 
-        print(response)
+        print(data)
 
-        page = response.get('nextPage',None)
+        if "results" not in data:
+            break
+            #raise HTTPException(status_code=400, detail="Erro ao buscar notícias")
+
+        for article in data["results"]:
+            new_article = Article(
+                article_id=article["article_id"],
+                title=article["title"],
+                description=article["description"],
+                link=article["link"],
+                image_url=article["image_url"]
+            )
+
+            print(article["article_id"])
+            
+            session.add(new_article)
+            articles.append(new_article)
+
+        page = data.get('nextPage',None)
+
+        print(page)
+
+        session.commit()
 
         if not page:
             break
-
-get_articles()
+    
+    return articles

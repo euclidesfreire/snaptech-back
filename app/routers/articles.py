@@ -13,11 +13,16 @@ NEWS_API_URL = "https://newsdata.io/api/1/latest"
 
 @app.get("/fetch/latest")
 def fetch_latest(session: Session = Depends(get_session)):
+    return get_articles(session=session)
+
+@app.get("/fetch/latest-10")
+def fetch_latest(session: Session = Depends(get_session)):
     response = requests.get(NEWS_API_URL, params={"category": "technology", "country": "br", "apiKey": NEWS_API_KEY})
     data = response.json()
 
     if "results" not in data:
         raise HTTPException(status_code=400, detail="Erro ao buscar notícias")
+        session.commit()
 
     articles = []
     for article in data["results"]:

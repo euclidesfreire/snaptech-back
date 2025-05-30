@@ -5,7 +5,8 @@ from sqlmodel import Session, select
 from database import create_db_and_tables, get_session
 from pydantic import BaseModel
 from models import Article, UserInteraction, User
-from ml.recommender import cold_start, collaborative_filtering
+from ml.recommender import cold_start, cluster_filtering, collaborative_filtering
+from articles import get_articles_api
 import time
 
 app = FastAPI()
@@ -19,6 +20,10 @@ class UserInteractionStart(BaseModel):
     article_id: int
     like: bool
     dislike: bool
+
+@app.get("/fetch/latest")
+def fetch_latest(session: Session = Depends(get_session)):
+    get_articles_api(session=session)
 
 @app.on_event("startup")
 def on_startup():
@@ -156,19 +161,19 @@ def get_articles_interactions(article_id: int, session: Session = Depends(get_se
     return interactions
 
 @app.get("/recommendations/cold_start")
-def get_cold_start(user_id: int, session: Session = Depends(get_session)):
+def get_cold_start(session: Session = Depends(get_session)):
     interactions = session.query(UserInteraction).all()
     #articles = {article.id: article for article in session.query(Article).all()}
-    recommendations = cold_start(interactions, user_id)
+    recommendations = cold_start(interactions)
     print('recommendations')
     print(recommendations)
     return recommendations
 
-@app.get("/recommendations/")
+@app.get("/recommendations/{user_id}")
 def get_recommendations(user_id: int, session: Session = Depends(get_session)):
     interactions = session.query(UserInteraction).all()
-    #articles = {article.id: article for article in session.query(Article).all()}
-    recommendations = collaborative_filtering(interactions, user_id)
+    articles = {article.id: article for article in session.query(Article).all()}
+    recommendations = collaborative_filtering(interactions, articles, user_id)
     print('recommendations')
     print(recommendations)
     return recommendations
@@ -176,9 +181,9 @@ def get_recommendations(user_id: int, session: Session = Depends(get_session)):
 @app.get("/start/")
 def get_start(session: Session = Depends(get_session)):
 
-    #for i in range(0,150): 
-    #    email=f"usuario{i}@dominio.com"
-    #    post_user(email, session)
+    for i in range(0,150): 
+        email=f"usuario{i}@dominio.com"
+        post_user(email, session)
 
     
     interactions = {}

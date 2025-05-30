@@ -10,10 +10,19 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
+import time
+
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy.sparse import csr_matrix
 
 def cold_start(interactions):
+
+    interactions_dicts = [i.dict() for i in interactions]
+
+    interactions_df = pd.DataFrame(interactions_dicts)
+
     #Agrupar por artigos mean e count
-    metrics = interactions.groupby("article_id")[["like", "dislike"]].agg(["mean","count"])
+    metrics = interactions_df.groupby("article_id")[["like", "dislike"]].agg(["mean","count"])
 
     # Ajustar os nomes das colunas
     metrics.columns = ["mean_like", "count_like", "mean_dislike", "count_dislike"]
@@ -26,11 +35,19 @@ def cold_start(interactions):
 
     metrics.sort_values("score", ascending=False, inplace=True)
 
-    return metrics['score']
+    return metrics
 
-def collaborative_filtering(interactions, user_id):
+def cluster_filtering(interactions, user_id):
 
-    metrics = cold_start(interactions);
+    metrics = pd.DataFrame()
+
+    metrics = cold_start(interactions)
+
+    print(metrics)
+
+    interactions_dicts = [i.dict() for i in interactions]
+
+    interactions_df = pd.DataFrame(interactions_dicts)
 
     #Agrupar por artigos mean e count
     interactions['score'] = interactions_df['article_id'].map(
@@ -102,3 +119,75 @@ def collaborative_filtering(interactions, user_id):
         recomendados = pca_df_filtrado.sort_values(by='distancia')
 
         return recomendados 
+
+def collaborative_filtering(interactions, articles, user_id):
+
+
+    #if user_id not in interactions:
+     #   return False
+    # Supondo que 'interactions' seja a lista de objetos 'UserInteraction'
+
+    metrics = pd.DataFrame()
+    metrics = cold_start(interactions)
+
+    interactions_dicts = [i.dict() for i in interactions]
+
+    interactions_df = pd.DataFrame(interactions_dicts)
+    
+    interactions_df['score'] = interactions_df['article_id'].map(
+        metrics['score']
+    )
+
+    print('interactions_df')
+    print(interactions_df)
+
+    if user_id not in interactions_df['user_id']:
+        return False
+
+    # Criando o DataFrame
+    df = pd.DataFrame(interactions_df)
+
+    interaction_matrix = df.pivot_table(index='user_id', columns='article_id', values='score', fill_value=0)
+
+    print('interaction_matrix')
+    print(interaction_matrix)
+    
+    # Similaridade entre usuários
+    similarity_matrix = cosine_similarity(interaction_matrix)
+
+    print('similarity_matrix')
+    print(similarity_matrix)
+    
+    # Recomendar artigos
+    user_index = interaction_matrix.get_loc(user_id)
+    similar_users = similarity_matrix[user_index]
+
+    print('user_index')
+    print(user_index)
+
+    print(f'Similar users to {user_id}:')
+    print(similar_users)
+    
+    # Calcular os artigos recomendados com base na similaridade dos usuários
+    similar_articles = interaction_matrix.T.dot(similar_users)  # soma ponderada das interações
+    recommendations = similar_articles.sort_values(ascending=False).index.tolist()
+
+    print(f'similar_articlesto {user_id}:')
+    print(similar_articles)
+
+    print(f'recommendations to {user_id}:')
+    print(recommendations)
+
+    # Filtrar artigos que o usuário já interagiu
+    recommended_articles = [
+        article_id for article_id in recommendations
+        if interaction_matrix.loc[user_id, article_id] == 0  # Garantir que o valor da interação seja 0
+    ]
+
+
+    print(f'recommended_articles to {user_id}:')
+    print(recommended_articles)
+
+    
+    # Retornar os artigos recomendados
+    return [articles[article_id] for article_id in recommended_articles]
