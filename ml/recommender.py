@@ -15,6 +15,17 @@ import time
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
 
+def cold_start_filtering(interactions, articles):
+    metrics = pd.DataFrame()
+    metrics = cold_start(interactions)
+
+    print("Metrics")
+    print(metrics)
+
+    recommended_articles = metrics.head(20)
+
+    return [articles[article_id] for article_id in recommended_articles.index]
+
 def cold_start(interactions):
 
     interactions_dicts = [i.dict() for i in interactions]
@@ -37,13 +48,11 @@ def cold_start(interactions):
 
     return metrics
 
-def cluster_filtering(interactions, user_id):
+def cluster_filtering(interactions, articles, user_id):
 
     metrics = pd.DataFrame()
 
     metrics = cold_start(interactions)
-
-    print(metrics)
 
     interactions_dicts = [i.dict() for i in interactions]
 
@@ -118,7 +127,7 @@ def cluster_filtering(interactions, user_id):
         # 8. Ordena pelas distâncias (os mais próximos ao perfil do usuário)
         recomendados = pca_df_filtrado.sort_values(by='distancia')
 
-        return recomendados 
+        return [articles[article_id] for article_id in recomendados['article_id']] 
 
 def collaborative_filtering(interactions, articles, user_id):
 
@@ -138,9 +147,6 @@ def collaborative_filtering(interactions, articles, user_id):
         metrics['score']
     )
 
-    print('interactions_df')
-    print(interactions_df)
-
     if user_id not in interactions_df['user_id']:
         return False
 
@@ -148,9 +154,6 @@ def collaborative_filtering(interactions, articles, user_id):
     df = pd.DataFrame(interactions_df)
 
     interaction_matrix = df.pivot_table(index='user_id', columns='article_id', values='score', fill_value=0)
-
-    print('interaction_matrix')
-    print(interaction_matrix)
     
     # Similaridade entre usuários
     similarity_matrix = cosine_similarity(interaction_matrix)
@@ -159,11 +162,8 @@ def collaborative_filtering(interactions, articles, user_id):
     print(similarity_matrix)
     
     # Recomendar artigos
-    user_index = interaction_matrix.get_loc(user_id)
+    user_index = interaction_matrix.index.get_loc(user_id)
     similar_users = similarity_matrix[user_index]
-
-    print('user_index')
-    print(user_index)
 
     print(f'Similar users to {user_id}:')
     print(similar_users)

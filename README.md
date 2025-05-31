@@ -1,14 +1,40 @@
-API NEWS
+# SNAPTECH API
+
+## API NEWS
 https://newsdata.io/dashboard
 
-python -m venv venv
+## Executar
 
-Linux
-source venv/bin/activate
+- Criar venv
+    python -m venv venv
 
-Windows
-venv\Scripts\activate
+- Entrar na venv
+    - Linux
+    source venv/bin/activate
 
-pip install -r requirements.txt
+    - Windows
+    venv\Scripts\activate
 
-uvicorn main:app --reload
+- Instalar bibliotecas 
+    pip install -r requirements.txt
+
+- Executar fast-api
+    uvicorn main:app --reload
+
+## Artigos
+
+- Dados
+    - você usar o news.db ou news-copy.db já salvos
+    - Ou carregar da API News Data
+        - /fetch/latest
+        - Se recarregar os artigos, em seguida precisa startar os dados exemplos
+            - /start/
+
+- Algoritmos de Recomendação
+    ml/recommender.py
+
+    - Para executar
+        - Cold-start
+            /recommendations/cold_start
+        - Matrix de similaridade (precisa do email via post)
+            /recommendations/

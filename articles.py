@@ -7,7 +7,7 @@ import requests
 import time
 
 #class Article(BaseModel):
-#    article_id: Optional[str]
+#    article_token: Optional[str]
 #    title: str
 #    description: Optional[str]
 #    link: Optional[str]
@@ -36,14 +36,12 @@ def get_articles_api(q = "", country = "br", category = "technology", session=Se
 
         for article in data["results"]:
             new_article = Article(
-                article_id=article["article_id"],
+                article_token=article["article_id"],
                 title=article["title"],
                 description=article["description"],
                 link=article["link"],
                 image_url=article["image_url"]
             )
-
-            print(article["article_id"])
             
             session.add(new_article)
             articles.append(new_article)

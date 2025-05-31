@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 from database import create_db_and_tables, get_session
 from pydantic import BaseModel
 from models import Article, UserInteraction, User
-from ml.recommender import cold_start, cluster_filtering, collaborative_filtering
+from ml.recommender import cold_start_filtering, cluster_filtering, collaborative_filtering
 from articles import get_articles_api
 import time
 
@@ -21,6 +21,9 @@ class UserInteractionStart(BaseModel):
     like: bool
     dislike: bool
 
+class EmailRequest(BaseModel):
+    email: str
+
 @app.get("/fetch/latest")
 def fetch_latest(session: Session = Depends(get_session)):
     get_articles_api(session=session)
@@ -29,34 +32,14 @@ def fetch_latest(session: Session = Depends(get_session)):
 def on_startup():
     create_db_and_tables()
 
-@app.get("/search/")
-def search_news(session: Session = Depends(get_session)):
-    response = requests.get(NEWS_API_URL, params={"category": "technology", "country": "br", "apiKey": NEWS_API_KEY})
-    data = response.json()
-
-    if "results" not in data:
-        raise HTTPException(status_code=400, detail="Erro ao buscar notícias")
-
-    articles = []
-    for article in data["results"]:
-        new_article = Article(
-            article_id=article["article_id"],
-            title=article["title"],
-            description=article["description"],
-            link=article["link"],
-            image_url=article["image_url"]
-        )
-        session.add(new_article)
-        articles.append(new_article)
-    session.commit()
-    
-    return articles
-
 @app.post("/users/")
-def create_user(email: str, session: Session = Depends(get_session)):
-    post_user(email, session)
+def create_user(data: EmailRequest, session: Session = Depends(get_session)):
 
-def post_user(email, session: Session):
+    success = post_user(data.email, session)
+
+    return {'success': True}
+
+def post_user(email: str, session: Session):
     new_user = User(
         email=email
     )
@@ -71,18 +54,24 @@ def get_user(id: int, session: Session = Depends(get_session)):
     result = session.exec(statement).first()  # Retorna o primeiro resultado
     return result
 
+@app.get("/users/check-email")
+def get_user(email: str, session: Session = Depends(get_session)):
+    #Consulta usuário pelo ID
+    statement = select(User).where(User.email == email)
+    result = session.exec(statement).first()  # Retorna o primeiro resultado
+
+    data = { 'exists': True }
+
+    if not result:
+        data = { 'exists': False }
+
+    return data
+
 @app.get("/users/")
 def get_user_all(session: Session = Depends(get_session)):
     statement = select(User)
     results = session.exec(statement)
     return results.all()
-
-@app.get("/login/")
-def login(email: str, session: Session = Depends(get_session)):
-     #Consulta usuário pelo ID
-    statement = select(User).where(User.email == email)
-    result = session.exec(statement).first()  # Retorna o primeiro resultado
-    return result
 
 @app.get("/articles/")
 def get_articles(session: Session = Depends(get_session)):
@@ -163,19 +152,21 @@ def get_articles_interactions(article_id: int, session: Session = Depends(get_se
 @app.get("/recommendations/cold_start")
 def get_cold_start(session: Session = Depends(get_session)):
     interactions = session.query(UserInteraction).all()
-    #articles = {article.id: article for article in session.query(Article).all()}
-    recommendations = cold_start(interactions)
-    print('recommendations')
-    print(recommendations)
+    articles = {article.id: article for article in session.query(Article).all()}
+    recommendations = cold_start_filtering(interactions, articles)
+
     return recommendations
 
-@app.get("/recommendations/{user_id}")
-def get_recommendations(user_id: int, session: Session = Depends(get_session)):
+@app.get("/recommendations/")
+def get_recommendations(email: str, session: Session = Depends(get_session)):
+    statement = select(User).where(User.email == email)
+    result = session.exec(statement).first()
+    user_id = result.id
+
     interactions = session.query(UserInteraction).all()
     articles = {article.id: article for article in session.query(Article).all()}
     recommendations = collaborative_filtering(interactions, articles, user_id)
-    print('recommendations')
-    print(recommendations)
+
     return recommendations
 
 @app.get("/start/")
