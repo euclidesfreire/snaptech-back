@@ -3,6 +3,9 @@
 ## API NEWS
 https://newsdata.io/dashboard
 
+- Front-end
+    https://github.com/euclidesfreire/snaptech-front
+
 ## Executar
 
 - Criar venv
