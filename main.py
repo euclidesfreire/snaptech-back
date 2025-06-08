@@ -26,6 +26,14 @@ class EmailRequest(BaseModel):
 
 @app.get("/fetch/latest")
 def fetch_latest(session: Session = Depends(get_session)):
+    """
+    Fetch Articles of API 
+    
+    Parameters
+    ----------
+    session: Session
+    """
+    
     get_articles_api(session=session)
 
 @app.on_event("startup")
@@ -171,6 +179,20 @@ def get_recommendations(email: str, session: Session = Depends(get_session)):
 
 @app.get("/start/")
 def get_start(session: Session = Depends(get_session)):
+    """
+    Load start data
+
+    Parameters
+    ----------
+    session: Session
+
+    Post
+    -------
+    User
+        Users exemplos
+    Interaction
+        Interactions random
+    """
 
     for i in range(0,150): 
         email=f"usuario{i}@dominio.com"

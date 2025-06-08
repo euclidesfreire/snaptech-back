@@ -6,17 +6,29 @@ from models import Article
 import requests
 import time
 
-#class Article(BaseModel):
-#    article_token: Optional[str]
-#    title: str
-#    description: Optional[str]
-#    link: Optional[str]
-#    image_url: Optional[str]
-
 NEWS_API_KEY = "pub_624603223c8e181a61bcd17adc1b2a82cdaa8"
 NEWS_API_URL = "https://newsdata.io/api/1/latest"
 
 def get_articles_api(q = "", country = "br", category = "technology", session=Session):
+    """
+    Get Articles
+
+    Parameters
+    ----------
+    q: String
+        Data search
+    country: String
+        default br
+    category: String
+        default technology   
+    session: Session
+        session db active
+
+    Returns
+    -------
+    List[Articles]
+    A list of Articles API
+    """
 
     # You can paginate till last page by providing "page" parameter
     page=None
