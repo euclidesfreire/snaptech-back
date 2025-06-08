@@ -1,5 +1,16 @@
 # SNAPTECH API
 
+![Home SnapTech](snaptech.png)
+
+- Desafio da Pós Tech em Machine Learning Engineering
+    - API de recomendação de notícias de tecnologia
+
+- Entregas:
+    - API de coleta de dados em tempo real da newsdata.io, armazenado em SQLite 
+    - Modelo de ML, Sistema de Recomendação baseado em Matriz de Similaridade
+        - Um segundo modelo em KMeans de clusters
+    - Alimenta uma aplicação simples, um site de notícias tech, Front-end
+
 ## API NEWS
 https://newsdata.io/dashboard
 
