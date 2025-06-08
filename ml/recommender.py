@@ -16,6 +16,21 @@ from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
 
 def cold_start_filtering(interactions, articles):
+    """
+    Filtering the articles by metrics score for cold start.
+
+    Parameters
+    ----------
+    interactions : UserInteractionStart
+        Interactions between users and articles
+    articles: Articles
+
+    Returns
+    -------
+    List[Articles]
+    A list of Articles to be recommended
+    """
+
     metrics = pd.DataFrame()
     metrics = cold_start(interactions)
 
@@ -27,6 +42,19 @@ def cold_start_filtering(interactions, articles):
     return [articles[article_id] for article_id in recommended_articles.index]
 
 def cold_start(interactions):
+    """
+    Calcule the metrics of interactions cold start
+
+    Parameters
+    ----------
+    interactions : UserInteractionStart
+        Interactions between users and articles
+
+    Returns
+    -------
+    List[metrics]
+    A list of metrics - "mean_like", "count_like", "mean_dislike", "count_dislike","score"
+    """
 
     interactions_dicts = [i.dict() for i in interactions]
 
@@ -130,11 +158,25 @@ def cluster_filtering(interactions, articles, user_id):
         return [articles[article_id] for article_id in recomendados['article_id']] 
 
 def collaborative_filtering(interactions, articles, user_id):
+    """
+    Filtering the articles by Collaborative, matrix similarity
 
+    Parameters
+    ----------
+    interactions : UserInteractionStart
+        Interactions between users and articles
+    articles: Articles
+    user_id: int
+        Logged in user ID
+
+    Returns
+    -------
+    List[Articles]
+    A list of Articles to be recommended
+    """
 
     #if user_id not in interactions:
      #   return False
-    # Supondo que 'interactions' seja a lista de objetos 'UserInteraction'
 
     metrics = pd.DataFrame()
     metrics = cold_start(interactions)
